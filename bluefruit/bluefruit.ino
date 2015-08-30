@@ -11,16 +11,25 @@
 #include "BluefruitConfig.h"
 
 #define MINIMUM_FIRMWARE_VERSION    "0.6.6"
-#define MODE_LED_BEHAVIOUR          "DISABLED"
+#define MODE_LED_BEHAVIOUR          "STATUS"
+#define DEBOUNCE                     10
 
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
 
-int download = A4;
-int migrate  = A3;
-int test     = A2;
-int deploy   = A1;
-int start    = A0;
-int led = 13;
+typedef struct {
+  int pin;
+  String name;
+} button;
+
+button buttons[4] = {
+  {A4, "DOWNLOAD"},
+  {A3, "MIGRATE"},
+  {A2, "TEST"},
+  {A1, "DEPLOY"},
+};
+
+button start_button = {A0, "BEGIN"};
+volatile byte pressed, justpressed, justreleased;
 
 void error(const __FlashStringHelper*err) {
   Serial.println(err);
@@ -29,12 +38,8 @@ void error(const __FlashStringHelper*err) {
 
 void setup(void)
 {
-
   Serial.begin(115200);
-  Serial.println(F("EasyButton Starting"));
-
-  /* Initialise the module */
-  Serial.print(F("Initialising the Bluefruit LE module: "));
+  Serial.println(F("EasyButton Starting..."));
 
   if ( !ble.begin(VERBOSE_MODE) )
   {
@@ -44,16 +49,10 @@ void setup(void)
 
   /* Disable command echo from Bluefruit */
   ble.echo(false);
-
-  Serial.println("Requesting Bluefruit info:");
-  ble.info();
-  ble.verbose(false);
-
-  /*
-  while (! ble.isConnected()) {
+  while (! ble.isConnected())
+  {
       delay(500);
   }
-  */
 
   if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) )
   {
@@ -61,12 +60,15 @@ void setup(void)
   }
   ble.setMode(BLUEFRUIT_MODE_DATA);
 
-  /* Set up the input pins */
-  pinMode(A0, INPUT_PULLUP);
-  pinMode(A1 , INPUT_PULLUP);
-  pinMode(A2    , INPUT_PULLUP);
-  pinMode(A3  , INPUT_PULLUP);
-  pinMode(A4   , INPUT_PULLUP);
+  for(int i=0;i<4;i++)
+  {
+    pinMode(buttons[i].pin, INPUT_PULLUP);
+  }
+  pinMode(start_button.pin, INPUT_PULLUP);
+}
+
+void check_begin(void) {
+  
 }
 
 void loop(void)
@@ -93,40 +95,21 @@ void loop(void)
     Serial.print((char)c);
   }
 
-  starting = !digitalRead(start);
-
-  if(started != started) {
-    started = 0;
-  }
+  starting = !digitalRead(start_button.pin);
   
   if(starting && !started) {
     started = starting;
-    Serial.print("{\n");
-    if (!digitalRead(download)) {
-      Serial.print("  download: 1,\n");
+
+    Serial.print("BEGIN:");
+    ble.print("BEGIN:");
+    for(int i=0;i<4;i++)
+    {
+      if (!digitalRead(buttons[i].pin)) {
+        Serial.print(buttons[i].name + ",");
+        ble.print(buttons[i].name + ",");
+      }
     }
-    if (!digitalRead(migrate)) {
-      Serial.print("  migrate: 1,\n");
-    }
-    if (!digitalRead(test)) {
-      Serial.print("  test: 1,\n");
-    }
-    if (!digitalRead(deploy)) {
-      Serial.print("  deploy: 1,\n");
-    }
-    Serial.print("}\n");
+    Serial.print("\n");
+    ble.print("\n");
   }
-
-
-
-  /*
-  operations[1] = digitalRead(migrate);
-  operations[2] = digitalRead(test);
-  operations[3] = digitalRead(deploy);
-  operations[4] = digitalRead(start);
-
-  */
-  //Serial.print(operations,HEX);
-  //ble.print(operations,HEX);
-  
 }
