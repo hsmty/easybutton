@@ -30,6 +30,7 @@ button buttons[4] = {
 
 button start_button = {A0, "BEGIN"};
 volatile byte pressed, justpressed, justreleased;
+bool buttonState;
 
 void error(const __FlashStringHelper*err) {
   Serial.println(err);
@@ -65,16 +66,15 @@ void setup(void)
     pinMode(buttons[i].pin, INPUT_PULLUP);
   }
   pinMode(start_button.pin, INPUT_PULLUP);
-}
-
-void check_begin(void) {
-  
+  buttonState = digitalRead(start_button.pin);
 }
 
 void loop(void)
 {
   char n, inputs[BUFSIZE+1];
-  bool starting, started = 0;
+  bool debounce1;
+  bool debounce2;
+  bool started;
   if (Serial.available())
   {
     n = Serial.readBytes(inputs, BUFSIZE);
@@ -91,15 +91,14 @@ void loop(void)
   while ( ble.available() )
   {
     int c = ble.read();
-
     Serial.print((char)c);
   }
 
-  starting = !digitalRead(start_button.pin);
+  debounce1 = !digitalRead(start_button.pin);
+  delay(DEBOUNCE);
+  debounce2 = !digitalRead(start_button.pin);
   
-  if(starting && !started) {
-    started = starting;
-
+  if(debounce1 == debounce2 && debounce1 != buttonState && debounce1 == true) {
     Serial.print("BEGIN:");
     ble.print("BEGIN:");
     for(int i=0;i<4;i++)
@@ -112,4 +111,5 @@ void loop(void)
     Serial.print("\n");
     ble.print("\n");
   }
+  buttonState = debounce1;
 }
