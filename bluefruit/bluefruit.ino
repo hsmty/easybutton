@@ -106,6 +106,7 @@ void loop(void)
       if (!digitalRead(buttons[i].pin)) {
         Serial.print(buttons[i].name + ",");
         ble.print(buttons[i].name + ",");
+        delay(10);
       }
     }
     Serial.print("\n");
