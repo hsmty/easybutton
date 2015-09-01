@@ -22,10 +22,10 @@ typedef struct {
 } button;
 
 button buttons[4] = {
-  {A4, "DOWNLOAD"},
-  {A3, "MIGRATE"},
-  {A2, "TEST"},
-  {A1, "DEPLOY"},
+  {A4, String("DOWNLOA")},
+  {A3, String("Migrate")},
+  {A2, String("TEST")},
+  {A1, String("DEPLOY")},
 };
 
 button start_button = {A0, "BEGIN"};
@@ -75,6 +75,8 @@ void loop(void)
   bool debounce1;
   bool debounce2;
   bool started;
+  String stages;
+  char s[42];
   if (Serial.available())
   {
     n = Serial.readBytes(inputs, BUFSIZE);
@@ -99,17 +101,19 @@ void loop(void)
   debounce2 = !digitalRead(start_button.pin);
   
   if(debounce1 == debounce2 && debounce1 != buttonState && debounce1 == true) {
-    Serial.print("BEGIN:");
-    ble.print("BEGIN:");
+    stages = "";
     for(int i=0;i<4;i++)
     {
       if (!digitalRead(buttons[i].pin)) {
-        Serial.print(buttons[i].name + ",");
-        ble.print(buttons[i].name + ",");
+        stages = stages + buttons[i].name + ",";
       }
     }
-    Serial.print("\n");
-    ble.print("\n");
+    if (stages != "") {
+      stages = "BEGIN: " + stages + "\n";
+      stages.toCharArray(s,42);
+      Serial.print(stages);
+      ble.print(s);
+    }
   }
   buttonState = debounce1;
 }
