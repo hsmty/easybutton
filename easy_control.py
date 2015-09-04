@@ -9,6 +9,7 @@ from Adafruit_BluefruitLE.services import UART
 ble = Adafruit_BluefruitLE.get_provider()
 
 def main():
+    ble.clear_cached_data()
     global device
     adapter = ble.get_default_adapter()
     adapter.power_on()
